@@ -15,34 +15,28 @@ public:
     headers_["Connection"] = "close";
   }
 
-  // Set the response body and update Content-Length
   void setBody(const std::string &body)
   {
     body_ = body;
     headers_["Content-Length"] = std::to_string(body.size());
   }
 
-  // Set custom headers
   void setHeader(const std::string &header, const std::string &value)
   {
     headers_[header] = value;
   }
 
-  // Convert the HttpResponse object into a valid HTTP response string
   std::string toString() const
   {
     std::ostringstream responseStream;
 
-    // Correct HTTP version: "HTTP/1.1"
     responseStream << "HTTP/1.1 " << statusCode_ << " " << statusMessage_ << "\r\n";
 
-    // Append headers
     for (const auto &header : headers_)
     {
       responseStream << header.first << ": " << header.second << "\r\n";
     }
 
-    // Separate headers from body
     responseStream << "\r\n"
                    << body_;
 

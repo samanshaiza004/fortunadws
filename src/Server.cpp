@@ -11,7 +11,6 @@ void Server::startAccept()
 {
   auto socket = std::make_shared<tcp::socket>(io_context_);
 
-  // Asynchronously accept a new connection
   acceptor_.async_accept(*socket, [this, socket](const boost::system::error_code &error)
                          {
                           std::cout << "Listening for connections on port " << port << std::endl;
@@ -24,13 +23,11 @@ void Server::startAccept()
         {
             std::cerr << "Error accepting connection: " << error.message() << std::endl;
         }
-        // Continue accepting the next connection
         startAccept(); });
 }
 
 void Server::handleAccept(std::shared_ptr<tcp::socket> socket)
 {
-  // Set buffer sizes (optional, but may help during stress testing)
   boost::asio::socket_base::receive_buffer_size recv_option(16384);
   socket->set_option(recv_option);
 
@@ -39,8 +36,7 @@ void Server::handleAccept(std::shared_ptr<tcp::socket> socket)
 
   socket->set_option(boost::asio::socket_base::reuse_address(true));
 
-  // Start asynchronous read from the client
-  auto buffer = std::make_shared<boost::asio::streambuf>(); // To handle input stream
+  auto buffer = std::make_shared<boost::asio::streambuf>();
   asyncReadClient(socket, buffer);
 }
 
@@ -55,7 +51,6 @@ void Server::asyncReadClient(std::shared_ptr<tcp::socket> socket, std::shared_pt
                                     std::string request;
                                     std::getline(requestStream, request);
                                     std::cout << "Received request: " << request << std::endl;
-                                    // Handle client response after receiving request
                                     sendResponse(socket, request);
                                   }
                                   else
@@ -72,7 +67,7 @@ void Server::asyncReadClient(std::shared_ptr<tcp::socket> socket, std::shared_pt
                                     {
                                       std::cerr << "Error reading from client: " << ec.message() << std::endl;
                                     }
-                                    socket->close(); // Always close socket after error or EOF
+                                    socket->close();
                                   }
                                 });
 }
@@ -96,13 +91,11 @@ void Server::sendResponse(std::shared_ptr<tcp::socket> socket, const std::string
 
   auto responseString = std::make_shared<std::string>(response.toString());
 
-  // Asynchronously send the response to the client
   boost::asio::async_write(*socket, boost::asio::buffer(*responseString),
                            [this, socket, response](boost::system::error_code ec, std::size_t /*length*/)
                            {
                              if (!ec)
                              {
-                               // Gracefully shutdown the socket after sending the response
                                boost::system::error_code shutdown_ec;
                                socket->shutdown(tcp::socket::shutdown_both, shutdown_ec);
                                if (shutdown_ec)
@@ -114,14 +107,13 @@ void Server::sendResponse(std::shared_ptr<tcp::socket> socket, const std::string
                              else
                              {
                                std::cerr << "Error sending response: " << ec.message() << std::endl;
-                               socket->close(); // Close the socket after error
+                               socket->close();
                              }
                            });
 }
 
 void Server::run()
 {
-  // Run the io_context on multiple threads
   std::vector<std::thread> threads;
   const std::size_t num_threads = 10;
   for (std::size_t i = 0; i < num_threads; ++i)
@@ -130,7 +122,6 @@ void Server::run()
                          { io_context_.run(); });
   }
 
-  // Join all threads
   for (auto &thread : threads)
   {
     thread.join();
